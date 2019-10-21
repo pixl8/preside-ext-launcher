@@ -1,0 +1,21 @@
+{
+    "name":"PresideCMS Extension: Launcher",
+    "type":"preside-extensions",
+    "version":"VERSION_NUMBER",
+    "location":"https://s3.eu-west-2.amazonaws.com/pixl8-public-packages/admin-launcher/DOWNLOAD_LOCATION",
+    "private":true,
+    "author":"Pixl8 Interactive",
+    "directory":"application/extensions",
+    "repository":{
+        "type":"git",
+        "URL":"https://gitlab.pixl8.london/pixl8/extensions/preside-ext-launcher"
+    },
+    "slug":"preside-ext-launcher",
+    "projectURL":"https://gitlab.pixl8.london/pixl8/extensions/preside-ext-launcher",
+    "ignore":[
+        ".git/*",
+        ".gitignore",
+        ".travis.yml",
+        ".twgit_features_subject"
+    ]
+}
