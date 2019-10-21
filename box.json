@@ -3,7 +3,7 @@
     "type":"preside-extensions",
     "version":"VERSION_NUMBER",
     "location":"https://s3.eu-west-2.amazonaws.com/pixl8-public-packages/admin-launcher/DOWNLOAD_LOCATION",
-    "private":true,
+    "private":false,
     "author":"Pixl8 Interactive",
     "directory":"application/extensions",
     "repository":{
