@@ -1,24 +1,33 @@
 component {
 	property name="datamanagerService" inject="datamanagerService";
 	property name="systemConfigurationService" inject="systemConfigurationService";
+	property name="cache" inject="cachebox:template";
 
 	private struct function config( event, rc, prc ) {
-		var groupedObjects = datamanagerService.getGroupedObjects();
-		var items = [];
+		var cacheKey = "launcher-navigation-items-" & event.getAdminUserId();
+		var items = cache.get( cacheKey );
 
-		for( var group in groupedObjects ) {
-			for( var obj in group.objects ) {
-				items.append( {
-					  id          = "datamanager-" & obj.id
-					, icon        = obj.iconClass
-					, text        = group.title & ": " & obj.title
-					, description = translateResource( uri="preside-objects.#obj.id#:description", defaultvalue="" )
-					, url         = event.buildAdminLink( objectName=obj.id )
-				} );
+		if ( IsNull( local.items ) ) {
+			items = [];
+
+			var groupedObjects = datamanagerService.getGroupedObjects();
+
+			for( var group in groupedObjects ) {
+				for( var obj in group.objects ) {
+					items.append( {
+						  id          = "datamanager-" & obj.id
+						, icon        = obj.iconClass
+						, text        = group.title & ": " & obj.title
+						, description = translateResource( uri="preside-objects.#obj.id#:description", defaultvalue="" )
+						, url         = event.buildAdminLink( objectName=obj.id )
+					} );
+				}
 			}
-		}
-		if ( hasCmsPermission( "systemConfiguration.manage" ) ) {
-			items.append( _getSystemConfigLauncherItems( argumentCollection=arguments ), true );
+			if ( hasCmsPermission( "systemConfiguration.manage" ) ) {
+				items.append( _getSystemConfigLauncherItems( argumentCollection=arguments ), true );
+			}
+
+			cache.set( cacheKey, items );
 		}
 
 		return { local=items, javascriptSrc=true };
