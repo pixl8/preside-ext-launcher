@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.2
+
+* Cache navigation items that otherwise require expensive permissioning checks, etc.
+
 ## v1.0.1
 
 * Added German translations for the UI
