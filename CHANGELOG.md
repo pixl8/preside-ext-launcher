@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.3
+
+* Only do launcher operations for admin requests.
+
 ## v1.0.2
 
 * Cache navigation items that otherwise require expensive permissioning checks, etc.

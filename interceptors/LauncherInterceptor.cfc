@@ -8,25 +8,27 @@ component extends="coldbox.system.Interceptor" {
 
 	public void function preLayoutRender( event, interceptData={} ) {
 		var layout = Trim( interceptData.layout ?: "" );
-
-		launcherService.prepareDatasources();
-
-		if ( autoInject && layout == "admin" ) {
-			event.include( "/js/admin/specific/launcher/" )
-			     .include( "/css/admin/specific/launcher/" );
+		if ( layout == "admin" && event.isAdminRequest() ) {
+			launcherService.prepareDatasources();
+			if ( autoInject  ) {
+				event.include( "/js/admin/specific/launcher/" )
+				     .include( "/css/admin/specific/launcher/" );
+			}
 		}
 	}
 
 	public void function postLayoutRender( event, interceptData={} ) {
-		var layout = Trim( interceptData.layout ?: "" );
-		var prc    = event.getCollection( private=true );
+		if ( event.isAdminRequest() ) {
+			var layout = Trim( interceptData.layout ?: "" );
+			var prc    = event.getCollection( private=true );
 
-		if ( autoInject && layout == "admin" ) {
-			var launcher = getController().renderViewlet( event="admin.layout.launcher" );
+			if ( autoInject && layout == "admin" ) {
+				var launcher = getController().renderViewlet( event="admin.layout.launcher" );
 
-			interceptData.renderedLayout = ( interceptData.renderedLayout ?: "" ).replaceNoCase( '<div class="navbar-header pull-right" role="navigation">', '#launcher#<div class="navbar-header pull-right" role="navigation">' );
+				interceptData.renderedLayout = ( interceptData.renderedLayout ?: "" ).replaceNoCase( '<div class="navbar-header pull-right" role="navigation">', '#launcher#<div class="navbar-header pull-right" role="navigation">' );
+			}
+
+			recentlyVisitedService.recordRecentlyVisited();
 		}
-
-		recentlyVisitedService.recordRecentlyVisited();
 	}
 }
