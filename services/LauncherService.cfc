@@ -105,7 +105,7 @@ component {
 		var event          = $getRequestContext();
 		var recordLinkBase = event.buildAdminLink( objectName=arguments.object, recordId="{id}" );
 		var objectIcon     = $translateResource( uri="preside-objects.#arguments.object#:iconclass", defaultValue="fa-database" );
-		var labelField     = $getPresideObjectService().getLabelField( arguments.object );
+		var labelField     = _getObjectLabelField( arguments.object );
 		var idField        = $getPresideObjectService().getIdField( arguments.object );
 		var selectFields   = _getLabelRendererService().getSelectFieldsForLabel( arguments.labelRenderer );
 		var result         = [];
@@ -202,11 +202,17 @@ component {
 		return launcherRenderer.len() ? launcherRenderer : Trim( $getPresideObjectService().getObjectAttribute( arguments.objectName, "labelRenderer" ) );
 	}
 
+	private string function _getObjectLabelField( required string objectName ) {
+		var labelField = Trim( $getPresideObjectService().getObjectAttribute( arguments.objectName, "launcherLabelField" ) );
+
+		return labelField.len() ? labelField : Trim( $getPresideObjectService().getLabelField( arguments.objectName ) );
+	}	
+	
 	private string function _buildSearchFilter(
 		  required string q
 		, required string objectName
 		, required array  searchFields = []
-		,          string labelfield   = $getPresideObjectService().getLabelField( arguments.objectName )
+		,          string labelfield   = _getObjectLabelField( arguments.objectName )
 	) {
 		var field        = "";
 		var filter       = "";
@@ -217,6 +223,8 @@ component {
 			, selectFields = arguments.searchFields
 			, includeAlias = false
 		);
+
+		
 		for( field in parsedFields ){
 			field = field.reReplaceNoCase( "\s+as\s+.+$", "" ); // remove alias
 			if ( poService.getObjectProperties( arguments.objectName ).keyExists( field ) ) {
@@ -235,8 +243,11 @@ component {
 		var objName   = arguments.objectName;
 		var fullName  = "";
 
+		var launcherLabelField = _getObjectLabelField( arguments.objectName );
+		
+		
 		if ( fieldName contains "${labelfield}" ) {
-			fieldName = poService.getObjectAttribute( arguments.objectName, "labelfield", "label" );
+			fieldName = poService.getObjectAttribute( arguments.objectName, "labelfield", launcherLabelField );
 			if ( ListLen( fieldName, "." ) == 2 ) {
 				objName = ListFirst( fieldName, "." );
 				fieldName = ListLast( fieldName, "." );
@@ -248,7 +259,7 @@ component {
 			var relatedTo = prop.relatedTo ?: "none";
 
 			if(  Len( Trim( relatedTo ) ) && relatedTo != "none" ) {
-				var objectLabelField = poService.getObjectAttribute( relatedTo, "labelfield", "label" );
+				var objectLabelField = poService.getObjectAttribute( relatedTo, "labelfield", launcherLabelField );
 
 				if( Find( ".", objectLabelField ) ){
 					fullName = arguments.field & "$" & objectLabelField;
