@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.4
+
+* Fix umlaut characters in the German translations
+
 ## v1.0.3
 
 * Only do launcher operations for admin requests.
