@@ -130,15 +130,20 @@ component {
 		}
 
 		if ( Len( Trim( arguments.q ) ) ) {
-			args.filter = _buildSearchFilter(
-				  q            = arguments.q
+			var queryText = listToArray( decodeFromURL( arguments.q ), " " );
+
+			args.filterParams = {};
+			args.filter       = _buildSearchFilter(
+				  queryText    = queryText
 				, objectName   = arguments.object
 				, labelfield   = labelfield
 				, searchFields = searchFields
 			);
-			args.filterParams = { q = { type="varchar", value="%" & arguments.q & "%" } };
-		}
 
+			for ( var i=1; i<=arrayLen( queryText ); i++ ) {
+				args.filterParams[ "q#i#" ] = { type="varchar", value="%" & queryText[i] & "%" };
+			}
+		}
 
 		for( var field in selectFields ) {
 			if ( field.refindNoCase( "\bid$" ) ) {
@@ -203,7 +208,7 @@ component {
 	}
 
 	private string function _buildSearchFilter(
-		  required string q
+		  required array  queryText
 		, required string objectName
 		, required array  searchFields = []
 		,          string labelfield   = $getPresideObjectService().getLabelField( arguments.objectName )
@@ -217,13 +222,24 @@ component {
 			, selectFields = arguments.searchFields
 			, includeAlias = false
 		);
-		for( field in parsedFields ){
-			field = field.reReplaceNoCase( "\s+as\s+.+$", "" ); // remove alias
-			if ( poService.getObjectProperties( arguments.objectName ).keyExists( field ) ) {
-				field = _getFullFieldName( field,  arguments.objectName );
+		for ( var i=1; i<=arrayLen( arguments.queryText ); i++ ) {
+			filter &= "(";
+
+			for( field in parsedFields ){
+				field = field.reReplaceNoCase( "\s+as\s+.+$", "" ); // remove alias
+				if ( poService.getObjectProperties( arguments.objectName ).keyExists( field ) ) {
+					field = _getFullFieldName( field,  arguments.objectName );
+				}
+				filter &= delim & field & " like :q#i#";
+				delim = " or ";
 			}
-			filter &= delim & field & " like :q";
-			delim = " or ";
+
+			delim  = "";
+			filter &= ")";
+
+			if ( i != arrayLen( arguments.queryText ) ) {
+				filter &= " and ";
+			}
 		}
 
 		return filter;
