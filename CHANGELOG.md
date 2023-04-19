@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.0.5
+
+* Quick find not working properly for multi-word search terms
+* Build using GitHub Actions
+
 ## v1.0.4
 
 * Fix umlaut characters in the German translations
