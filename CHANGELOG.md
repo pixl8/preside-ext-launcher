@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.6
+
+* [#8](https://github.com/pixl8/preside-ext-launcher/issues/8) Cascade delete 'recently visisted' records when deleting admin users
+
 ## v1.0.5
 
 * Quick find not working properly for multi-word search terms
