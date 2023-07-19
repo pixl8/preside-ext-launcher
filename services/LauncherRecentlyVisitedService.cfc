@@ -139,12 +139,14 @@ component {
 			recentlyVisited.deleteAt( recentlyVisited.len() );
 		}
 
-		dao.insertData( {
-			  datasource = arguments.datasource
-			, user       = userId
-			, data_hash  = dataHash
-			, data       = serializedData
-		} );
+		if ( !dao.dataExists( filter={ user=userId, datasource=arguments.datasource, data_hash=dataHash } ) ) {
+			dao.insertData( {
+				  datasource = arguments.datasource
+				, user       = userId
+				, data_hash  = dataHash
+				, data       = serializedData
+			} );
+		}
 	}
 
 // PRIVATE HELPERS

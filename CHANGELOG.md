@@ -1,5 +1,9 @@
 # Changelog
 
+# v1.0.7
+
+* [#9](https://github.com/pixl8/preside-ext-launcher/issues/9) Prevent duplicate entry attempts for 'recently visited' data
+
 ## v1.0.6
 
 * [#8](https://github.com/pixl8/preside-ext-launcher/issues/8) Cascade delete 'recently visisted' records when deleting admin users
