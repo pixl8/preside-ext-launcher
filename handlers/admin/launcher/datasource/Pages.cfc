@@ -1,6 +1,9 @@
+/**
+ * @feature sitetree
+ */
 component extends="preside.system.base.AdminHandler" {
 
-	property name="siteTreeService" inject="siteTreeService";
+	property name="siteTreeService" inject="delayedInjector:siteTreeService";
 
 	private struct function config( event, rc, prc ) {
 		if ( !isFeatureEnabled( "sitetree" ) || !hasCmsPermission( "sitetree.navigate" ) ) {
