@@ -1,6 +1,10 @@
 # Changelog
 
-# v1.0.7
+## v1.0.8
+
+* [#10](https://github.com/pixl8/preside-ext-launcher/issues/10) compat issue: siteTreeService not available in admin only apps
+
+## v1.0.7
 
 * [#9](https://github.com/pixl8/preside-ext-launcher/issues/9) Prevent duplicate entry attempts for 'recently visited' data
 
