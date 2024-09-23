@@ -7,10 +7,10 @@ component {
 	 *
 	 * @displayName  Cleanup Launcher Last Visited Table
 	 * @displayGroup cleanup
-	 * @schedule     * 32 3 * *
+	 * @schedule     0 32 3 * * *
 	 * @feature      launcherExtension
 	 */
 	function cleanupLauncherRecentlyVisitedTable( event, rc, prc, logger ) {
-		launcherRecentlyVisitedService.cleanupExpired( arguments.logger );
+		return launcherRecentlyVisitedService.cleanupExpired( arguments.logger );
 	}
 }
