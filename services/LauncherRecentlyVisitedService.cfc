@@ -39,6 +39,7 @@ component {
 		var records = dao.selectData(
 			  filter  = { user=userId }
 			, orderBy = "datecreated desc"
+			, maxrows = _getMaxRecentlyVisitedItems()
 		);
 		for( var record in records ) {
 			var result = {
@@ -91,21 +92,27 @@ component {
 	}
 
 	public void function recordRecentlyVisited() {
-		for( var datasource in _getConfiguredDatasources() ) {
-			if ( recordRecentlyVisitedForDatasource( datasource ) ) {
-				break;
+		var userId = $getAdminLoggedInUserId();
+
+		if ( Len( userId ) ) {
+			thread id=CreateUUId() userId=userId {
+				for( var datasource in _getConfiguredDatasources() ) {
+					if ( recordRecentlyVisitedForDatasource( datasource, attributes.userId ) ) {
+						break;
+					}
+				}
 			}
 		}
 	}
 
-	public boolean function recordRecentlyVisitedForDatasource( required string datasource ) {
+	public boolean function recordRecentlyVisitedForDatasource( required string datasource, required string userId ) {
 		var coldbox = $getColdbox();
 		var recentlyVisitedHandler = "admin.launcher.datasource.#datasource#.recordRecentlyVisited";
 
 		if ( coldbox.handlerExists( recentlyVisitedHandler ) ) {
 			var recentlyVisitedData = coldbox.runEvent( event=recentlyVisitedHandler, private=true, prepostExempt=true );
 			if ( IsStruct( local.recentlyVisitedData ?: "" ) && recentlyVisitedData.count() ) {
-				_saveRecentlyVisited( arguments.datasource, recentlyVisitedData )
+				_saveRecentlyVisited( arguments.datasource, recentlyVisitedData, arguments.userId )
 				return true;
 			}
 		}
@@ -113,40 +120,44 @@ component {
 		return false;
 	}
 
-	private void function _saveRecentlyVisited( required string datasource, required struct data ) {
-		var dao      = _getDao();
-		var userId   = $getAdminLoggedInUserId();
-
-		if ( !userId.len() ) {
-			return;
-		}
+	private void function _saveRecentlyVisited( required string datasource, required struct data, required string userId ) {
+		var dao            = _getDao();
 		var serializedData = SerializeJson( arguments.data );
 		var dataHash       = Hash( serializedData );
-
-		dao.deleteData( filter={
+		var filter         = {
 			  datasource = arguments.datasource
 			, data_hash  = dataHash
-			, user       = userId
-		} );
+			, user       = arguments.userId
+		};
 
-		var recentlyVisited = getRecentlyVisited( rendered=false );
-		while( recentlyVisited.len() >= _getMaxRecentlyVisitedItems() ) {
-			dao.deleteData( filter={
-				  datasource  = recentlyVisited[ recentlyVisited.len() ].datasource
-				, data_hash   = recentlyVisited[ recentlyVisited.len() ].dataHash
-				, user        = userId
-			} );
-			recentlyVisited.deleteAt( recentlyVisited.len() );
+		var updated = dao.updateData( filter=filter, data={ datecreated=Now() } );
+		if ( updated > 0 ) {
+			return;
 		}
 
-		if ( !dao.dataExists( filter={ user=userId, datasource=arguments.datasource, data_hash=dataHash } ) ) {
+		try {
 			dao.insertData( {
 				  datasource = arguments.datasource
-				, user       = userId
+				, user       = arguments.userId
 				, data_hash  = dataHash
 				, data       = serializedData
 			} );
-		}
+		} catch( database e ) { /* race conditions could happen here, not really a problem, just ignore */ }
+	}
+
+	public function cleanupExpired( logger ) {
+
+		// var recentlyVisited = getRecentlyVisited( rendered=false );
+		// while( recentlyVisited.len() > _getMaxRecentlyVisitedItems() ) {
+		// 	dao.deleteData( filter={
+		// 		  datasource  = recentlyVisited[ recentlyVisited.len() ].datasource
+		// 		, data_hash   = recentlyVisited[ recentlyVisited.len() ].dataHash
+		// 		, user        = userId
+		// 	} );
+		// 	recentlyVisited.deleteAt( recentlyVisited.len() );
+		// }
+
+		/* seb todo */
 	}
 
 // PRIVATE HELPERS
