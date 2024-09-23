@@ -98,7 +98,7 @@ component {
 		var userId = $getAdminLoggedInUserId();
 
 		if ( Len( userId ) ) {
-			thread id=CreateUUId() userId=userId {
+			thread id="recordlauncheractivity-#CreateUUId()#" userId=userId {
 				for( var datasource in _getConfiguredDatasources() ) {
 					if ( recordRecentlyVisitedForDatasource( datasource, attributes.userId ) ) {
 						break;
