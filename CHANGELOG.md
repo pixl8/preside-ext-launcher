@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.9
+
+* Fix issues with duplicate entry errors recording "recently visited" entries for launcher
+
 ## v1.0.8
 
 * [#10](https://github.com/pixl8/preside-ext-launcher/issues/10) compat issue: siteTreeService not available in admin only apps
