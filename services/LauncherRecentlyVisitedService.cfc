@@ -6,19 +6,22 @@ component {
 
 // CONSTRUCTOR
 	/**
-	 * @dao.inject presidecms:object:launcher_recently_visited
-	 * @configuredDatasources.inject coldbox:setting:launcher.datasources
+	 * @dao.inject                         presidecms:object:launcher_recently_visited
+	 * @sqlRunner.inject                   sqlRunner
+	 * @configuredDatasources.inject       coldbox:setting:launcher.datasources
 	 * @configuredObjectDatasources.inject coldbox:setting:launcher.objectDatasources
-	 * @maxRecentlyVisitedItems.inject coldbox:setting:launcher.maxRecentlyVisitedItems
+	 * @maxRecentlyVisitedItems.inject     coldbox:setting:launcher.maxRecentlyVisitedItems
 	 *
 	 */
 	public any function init(
 		  required any     dao
+		, required any     sqlRunner
 		, required array   configuredDatasources
 		, required array   configuredObjectDatasources
 		, required numeric maxRecentlyVisitedItems
 	) {
 		_setDao( arguments.dao );
+		_setSqlRunner( arguments.sqlRunner );
 		_setConfiguredDatasources( arguments.configuredDatasources );
 		_setConfiguredObjectDatasources( arguments.configuredObjectDatasources );
 		_setMaxRecentlyVisitedItems( arguments.maxRecentlyVisitedItems );
@@ -145,19 +148,37 @@ component {
 		} catch( database e ) { /* race conditions could happen here, not really a problem, just ignore */ }
 	}
 
-	public function cleanupExpired( logger ) {
+	public boolean function cleanupExpired( logger ) {
+		var maxPerUser = _getMaxRecentlyVisitedItems();
 
-		// var recentlyVisited = getRecentlyVisited( rendered=false );
-		// while( recentlyVisited.len() > _getMaxRecentlyVisitedItems() ) {
-		// 	dao.deleteData( filter={
-		// 		  datasource  = recentlyVisited[ recentlyVisited.len() ].datasource
-		// 		, data_hash   = recentlyVisited[ recentlyVisited.len() ].dataHash
-		// 		, user        = userId
-		// 	} );
-		// 	recentlyVisited.deleteAt( recentlyVisited.len() );
-		// }
+		arguments.logger?.info( "Cleaning up recently visited items for launcher..." );
+		arguments.logger?.info( ">> Maximum of #maxPerUser# launcher history items per user" );
 
-		/* seb todo */
+		var result = _getSqlRunner().runSql(
+			  dsn        = _getDao().getDsn()
+			, returnType = "info"
+			, params     = [ { name="maxVisitedItems", type="int", value=maxPerUser } ]
+			, sql        = "
+				DELETE lrv FROM pobj_launcher_recently_visited lrv
+				INNER JOIN (
+					SELECT
+						user,
+						datasource,
+						data_hash,
+						ROW_NUMBER() OVER( PARTITION BY user ORDER BY datecreated DESC ) AS history_index
+					FROM
+						pobj_launcher_recently_visited
+				) lrv_ranked
+				ON  lrv_ranked.user = lrv.user
+				AND lrv_ranked.datasource = lrv.datasource
+				AND lrv_ranked.data_hash = lrv.data_hash
+				WHERE history_index > :maxVisitedItems"
+		);
+
+		arguments.logger?.info( ">> #Val( result.recordCount ?: 0 )# launcher history items deleted" );
+		arguments.logger?.info( "Finished cleaning launcher history." );
+
+		return true;
 	}
 
 // PRIVATE HELPERS
@@ -168,6 +189,13 @@ component {
 	}
 	private void function _setDao( required any dao ) {
 		_dao = arguments.dao;
+	}
+
+	private any function _getSqlRunner() {
+		return _sqlRunner;
+	}
+	private void function _setSqlRunner( required any sqlRunner ) {
+		_sqlRunner = arguments.sqlRunner;
 	}
 
 	private array function _getConfiguredObjectDatasources() {
