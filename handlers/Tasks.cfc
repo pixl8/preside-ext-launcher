@@ -11,6 +11,6 @@ component {
 	 * @feature      launcherExtension
 	 */
 	function cleanupLauncherRecentlyVisitedTable( event, rc, prc, logger ) {
-		launcherRecentlyVisitedService.cleanupExpired( arguments.logger );
+		return launcherRecentlyVisitedService.cleanupExpired( arguments.logger );
 	}
 }
