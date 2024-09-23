@@ -7,9 +7,8 @@ module.exports = function( grunt ) {
 	grunt.loadNpmTasks( 'grunt-contrib-uglify' );
 	grunt.loadNpmTasks( 'grunt-contrib-watch' );
 	grunt.loadNpmTasks( 'grunt-rev' );
-	grunt.loadNpmTasks( 'grunt-postcss' );
 
-	grunt.registerTask( 'default', [ 'uglify', 'less', 'postcss', 'cssmin', 'clean', 'rev', 'rename' ] );
+	grunt.registerTask( 'default', [ 'uglify', 'less', 'cssmin', 'clean', 'rev', 'rename' ] );
 
 	grunt.initConfig( {
 		uglify: {
@@ -27,22 +26,6 @@ module.exports = function( grunt ) {
 					cwd     : "js/admin/specific/",
 					src     : ["**/*.js", "!**/*.min.js" ],
 					dest    : "js/admin/specific/",
-					ext     : ".min.js",
-					rename  : function( dest, src ){
-						var pathSplit = src.split( '/' );
-
-						pathSplit[ pathSplit.length-1 ] = "_" + pathSplit[ pathSplit.length-2 ] + ".min.js";
-
-						return dest + pathSplit.join( "/" );
-					}
-				}]
-			},
-			frontend:{
-				files: [{
-					expand  : true,
-					cwd     : "js/frontend/",
-					src     : ["**/*.js", "!**/*.min.js" ],
-					dest    : "js/frontend/",
 					ext     : ".min.js",
 					rename  : function( dest, src ){
 						var pathSplit = src.split( '/' );
@@ -74,17 +57,6 @@ module.exports = function( grunt ) {
 						return dest + pathSplit.join( "/" );
 					}
 				}]
-			}
-		},
-
-		postcss: {
-			options: {
-				processors : [
-					require( 'autoprefixer' )( { browsers : [ 'defaults', 'IE >= 9' ] } )
-				]
-			},
-			all: {
-				src  : 'css/**/*.less.css'
 			}
 		},
 

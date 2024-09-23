@@ -6,19 +6,22 @@ component {
 
 // CONSTRUCTOR
 	/**
-	 * @dao.inject presidecms:object:launcher_recently_visited
-	 * @configuredDatasources.inject coldbox:setting:launcher.datasources
+	 * @dao.inject                         presidecms:object:launcher_recently_visited
+	 * @sqlRunner.inject                   sqlRunner
+	 * @configuredDatasources.inject       coldbox:setting:launcher.datasources
 	 * @configuredObjectDatasources.inject coldbox:setting:launcher.objectDatasources
-	 * @maxRecentlyVisitedItems.inject coldbox:setting:launcher.maxRecentlyVisitedItems
+	 * @maxRecentlyVisitedItems.inject     coldbox:setting:launcher.maxRecentlyVisitedItems
 	 *
 	 */
 	public any function init(
 		  required any     dao
+		, required any     sqlRunner
 		, required array   configuredDatasources
 		, required array   configuredObjectDatasources
 		, required numeric maxRecentlyVisitedItems
 	) {
 		_setDao( arguments.dao );
+		_setSqlRunner( arguments.sqlRunner );
 		_setConfiguredDatasources( arguments.configuredDatasources );
 		_setConfiguredObjectDatasources( arguments.configuredObjectDatasources );
 		_setMaxRecentlyVisitedItems( arguments.maxRecentlyVisitedItems );
@@ -39,6 +42,7 @@ component {
 		var records = dao.selectData(
 			  filter  = { user=userId }
 			, orderBy = "datecreated desc"
+			, maxrows = _getMaxRecentlyVisitedItems()
 		);
 		for( var record in records ) {
 			var result = {
@@ -91,21 +95,27 @@ component {
 	}
 
 	public void function recordRecentlyVisited() {
-		for( var datasource in _getConfiguredDatasources() ) {
-			if ( recordRecentlyVisitedForDatasource( datasource ) ) {
-				break;
+		var userId = $getAdminLoggedInUserId();
+
+		if ( Len( userId ) ) {
+			thread id="recordlauncheractivity-#CreateUUId()#" userId=userId {
+				for( var datasource in _getConfiguredDatasources() ) {
+					if ( recordRecentlyVisitedForDatasource( datasource, attributes.userId ) ) {
+						break;
+					}
+				}
 			}
 		}
 	}
 
-	public boolean function recordRecentlyVisitedForDatasource( required string datasource ) {
+	public boolean function recordRecentlyVisitedForDatasource( required string datasource, required string userId ) {
 		var coldbox = $getColdbox();
 		var recentlyVisitedHandler = "admin.launcher.datasource.#datasource#.recordRecentlyVisited";
 
 		if ( coldbox.handlerExists( recentlyVisitedHandler ) ) {
 			var recentlyVisitedData = coldbox.runEvent( event=recentlyVisitedHandler, private=true, prepostExempt=true );
 			if ( IsStruct( local.recentlyVisitedData ?: "" ) && recentlyVisitedData.count() ) {
-				_saveRecentlyVisited( arguments.datasource, recentlyVisitedData )
+				_saveRecentlyVisited( arguments.datasource, recentlyVisitedData, arguments.userId )
 				return true;
 			}
 		}
@@ -113,40 +123,62 @@ component {
 		return false;
 	}
 
-	private void function _saveRecentlyVisited( required string datasource, required struct data ) {
-		var dao      = _getDao();
-		var userId   = $getAdminLoggedInUserId();
-
-		if ( !userId.len() ) {
-			return;
-		}
+	private void function _saveRecentlyVisited( required string datasource, required struct data, required string userId ) {
+		var dao            = _getDao();
 		var serializedData = SerializeJson( arguments.data );
 		var dataHash       = Hash( serializedData );
-
-		dao.deleteData( filter={
+		var filter         = {
 			  datasource = arguments.datasource
 			, data_hash  = dataHash
-			, user       = userId
-		} );
+			, user       = arguments.userId
+		};
 
-		var recentlyVisited = getRecentlyVisited( rendered=false );
-		while( recentlyVisited.len() >= _getMaxRecentlyVisitedItems() ) {
-			dao.deleteData( filter={
-				  datasource  = recentlyVisited[ recentlyVisited.len() ].datasource
-				, data_hash   = recentlyVisited[ recentlyVisited.len() ].dataHash
-				, user        = userId
-			} );
-			recentlyVisited.deleteAt( recentlyVisited.len() );
+		var updated = dao.updateData( filter=filter, data={ datecreated=Now() } );
+		if ( updated > 0 ) {
+			return;
 		}
 
-		if ( !dao.dataExists( filter={ user=userId, datasource=arguments.datasource, data_hash=dataHash } ) ) {
+		try {
 			dao.insertData( {
 				  datasource = arguments.datasource
-				, user       = userId
+				, user       = arguments.userId
 				, data_hash  = dataHash
 				, data       = serializedData
 			} );
-		}
+		} catch( database e ) { /* race conditions could happen here, not really a problem, just ignore */ }
+	}
+
+	public boolean function cleanupExpired( logger ) {
+		var maxPerUser = _getMaxRecentlyVisitedItems();
+
+		arguments.logger?.info( "Cleaning up recently visited items for launcher..." );
+		arguments.logger?.info( ">> Maximum of #maxPerUser# launcher history items per user" );
+
+		var result = _getSqlRunner().runSql(
+			  dsn        = _getDao().getDsn()
+			, returnType = "info"
+			, params     = [ { name="maxVisitedItems", type="int", value=maxPerUser } ]
+			, sql        = "
+				DELETE lrv FROM pobj_launcher_recently_visited lrv
+				INNER JOIN (
+					SELECT
+						user,
+						datasource,
+						data_hash,
+						ROW_NUMBER() OVER( PARTITION BY user ORDER BY datecreated DESC ) AS history_index
+					FROM
+						pobj_launcher_recently_visited
+				) lrv_ranked
+				ON  lrv_ranked.user = lrv.user
+				AND lrv_ranked.datasource = lrv.datasource
+				AND lrv_ranked.data_hash = lrv.data_hash
+				WHERE history_index > :maxVisitedItems"
+		);
+
+		arguments.logger?.info( ">> #Val( result.recordCount ?: 0 )# launcher history items deleted" );
+		arguments.logger?.info( "Finished cleaning launcher history." );
+
+		return true;
 	}
 
 // PRIVATE HELPERS
@@ -157,6 +189,13 @@ component {
 	}
 	private void function _setDao( required any dao ) {
 		_dao = arguments.dao;
+	}
+
+	private any function _getSqlRunner() {
+		return _sqlRunner;
+	}
+	private void function _setSqlRunner( required any sqlRunner ) {
+		_sqlRunner = arguments.sqlRunner;
 	}
 
 	private array function _getConfiguredObjectDatasources() {
