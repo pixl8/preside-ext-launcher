@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.10
+
+* Tidy up task manager displaygroup title
+
 ## v1.0.9
 
 * Fix issues with duplicate entry errors recording "recently visited" entries for launcher
