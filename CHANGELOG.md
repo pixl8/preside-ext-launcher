@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.12
+
+* Prevent hotkey trigger when focus is in any contenteditable field
+
 ## v1.0.11
 
 * Apply translation manager CI action
